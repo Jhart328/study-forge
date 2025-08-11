@@ -1,6 +1,22 @@
-# StudyForge v5.1 — Single-file Streamlit app
-# Paste this into GitHub as app.py, then deploy on Streamlit Community Cloud.
+mkdir -p ~/studyforge_v5 && cd ~/studyforge_v5
+
+# 1) Create requirements.txt (for GitHub + Streamlit Cloud)
+cat > requirements.txt <<'REQ'
+streamlit
+pandas
+python-dateutil
+pytz
+PyPDF2
+python-docx
+reportlab
+Pillow
+REQ
+
+# 2) Create the full, patched app.py
+cat > app.py <<'PY'
+# StudyForge v5.1 — Single-file Streamlit app (complete)
 # Run locally: streamlit run app.py
+# Deploy: push app.py + requirements.txt to GitHub, then Streamlit Community Cloud
 
 import streamlit as st
 import pandas as pd
@@ -326,7 +342,7 @@ def load_demo():
     # Build from the demo syllabus text
     text = demo_syllabus_text()
     items, weights = parse_syllabus(text, default_course="BIO")
-    # set IDs + default scores
+    # set IDs + defaults
     for it in items:
         it["id"]=uuid.uuid4().hex
         it.setdefault("score",0.0); it.setdefault("possible",0.0); it.setdefault("completed",False)
@@ -637,5 +653,37 @@ with tab_settings:
     p=ss.data["prefs"]
     colA,colB,colC = st.columns(3)
     p["timezone"]=colA.text_input("Timezone", value=p.get("timezone",DEFAULT_TZ))
-    p["horizon_days"]=int(colA.number_input("Horizon days", 7, 120, value=int(p.get("horizon
+    p["horizon_days"]=int(colA.number_input("Horizon days", 7, 120, value=int(p.get("horizon_days",21))))
+    p["day_start"]=colB.text_input("Day start", value=p.get("day_start","06:00"))
+    p["day_end"]=colB.text_input("Day end", value=p.get("day_end","22:00"))
+    p["chunk_minutes"]=int(colC.number_input("Chunk minutes", 15, 180, value=int(p.get("chunk_minutes",60)), step=15))
+    p["max_daily_minutes"]=int(colC.number_input("Max daily minutes", 30, 600, value=int(p.get("max_daily_minutes",300)), step=30))
+    p["due_buffer_hours"]=int(colC.number_input("Due buffer hours", 0, 72, value=int(p.get("due_buffer_hours",36))))
+    if st.button("Save Preferences"): save(); st.success("Preferences saved.")
 
+    st.checkbox("Show quotes", value=ss.quotes_on, key="quotes_on")
+    new_t=st.text_input("Add a tagline")
+    cc1,cc2=st.columns(2)
+    if cc1.button("Add Tagline"):
+        if new_t.strip(): ss.taglines.append(new_t.strip()); save(); st.success("Added!")
+    if cc2.button("Reset Default Taglines"):
+        ss.taglines = [
+            "Forge your path to success.",
+            "A GPA is just XP for real life.",
+            "One assignment at a time.",
+            "Study like Sun Tzu planned your semester.",
+            "Your future self will thank you.",
+            "Coffee is the fuel, discipline is the engine.",
+            "Small steps → big wins.",
+            "Consistency beats intensity.",
+            "Make future-you proud.",
+            "Plan smart, study calm."
+        ]
+        save(); st.success("Reset!")
+PY
+
+# 3) (Optional) Run locally now
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+streamlit run app.py
